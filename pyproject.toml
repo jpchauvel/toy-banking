@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "bank-service"
+name = "toy-banking"
 version = "0.1.0"
 description = "A toy banking network for studying distributed transactions"
 authors = ["Jean-Pierre Chauvel <jean.p.chauvel@gmail.com>, Antonio Ognio <aognio@gmail.com>"]
@@ -15,6 +15,12 @@ fastapi = "^0.111.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
+
+[tool.poetry.group.orchestrator.dependencies]
+cryptography = "^42.0.7"
+
+[tool.poetry.group.bank_service.dependencies]
+cryptography = "^42.0.7"
 
 [tool.black]
 line-length = 79
