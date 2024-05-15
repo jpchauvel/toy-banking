@@ -3,7 +3,7 @@ import argparse
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 import os
-from typing import AsyncIterator
+from typing import AsyncIterator, TypedDict
 
 from fastapi import FastAPI, Request
 import fastenv
@@ -20,14 +20,19 @@ class Config:
     reset_accounts: bool = False
 
 
+class LifespanState(TypedDict):
+    db_engine: Engine
+    settings: fastenv.DotEnv
+
+
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[LifespanState]:
     """Configure app lifespan."""
     if Config.enable_fastenv:
-        settings = await fastenv.load_dotenv(".env")
+        settings: fastenv.DotEnv = await fastenv.load_dotenv(".env")
     else:
-        settings = fastenv.DotEnv(**os.environ)
-    database_url = settings.get("DATABASE_URL", "")
+        settings: fastenv.DotEnv = fastenv.DotEnv(**os.environ)
+    database_url: str = settings.get("DATABASE_URL", "")
     engine: Engine = get_engine(database_url)
     if Config.create_tables:
         create_db(engine)
@@ -38,13 +43,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         reset_accounts(engine, num_of_fake_accounts)
     app.state.db_engine = engine
     app.state.settings = settings
-    yield
+    lifespan_state: LifespanState = {
+        "db_engine": engine,
+        "settings": settings,
+    }
+    yield lifespan_state
     app.state.db_engine = None
     app.state.settings = None
     engine.dispose()
 
 
-app = FastAPI(lifespan=lifespan)
+app: FastAPI = FastAPI(lifespan=lifespan)
 
 
 @app.get("/settings")
@@ -54,7 +63,7 @@ async def get_settings(request: Request) -> dict[str, str]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument(
         "--enable-fastenv",
         action="store_true",

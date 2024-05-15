@@ -4,13 +4,13 @@ from decimal import Decimal
 
 from faker import Faker
 
-fake = Faker()
+fake: Faker = Faker()
 
 
 def generate_bank_account() -> dict[str, str | Decimal]:
-    name = fake.name()
-    account_number = "".join([str(random.randint(0, 9)) for _ in range(16)])
-    state = random.choice(["Active", "Cancelled"])
+    name: str = fake.name()
+    account_number: str = "".join([str(random.randint(0, 9)) for _ in range(16)])
+    state: str = random.choice(["Active", "Cancelled"])
     balance: Decimal = Decimal(round(random.uniform(0, 10000), 2))
     return {
         "name": name,
