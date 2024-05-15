@@ -21,6 +21,11 @@ cryptography = "^42.0.7"
 
 [tool.poetry.group.bank_service.dependencies]
 cryptography = "^42.0.7"
+sqlmodel = "^0.0.18"
+
+
+[tool.poetry.group.registry.dependencies]
+sqlmodel = "^0.0.18"
 
 [tool.black]
 line-length = 79

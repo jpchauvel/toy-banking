@@ -1,32 +1,47 @@
 #!/usr/bin/env python3
-import os
-from dataclasses import dataclass
-from contextlib import asynccontextmanager
-from typing import AsyncIterator, TypedDict
 import argparse
-import fastenv
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
+import os
+from typing import AsyncIterator
+
 from fastapi import FastAPI, Request
+import fastenv
+from sqlalchemy import Engine
 import uvicorn
+
+from models import create_db, get_engine, reset_accounts
 
 
 @dataclass
 class Config:
     enable_fastenv: bool = False
-
-
-class LifespanState(TypedDict):
-    settings: fastenv.DotEnv
+    create_tables: bool = False
+    reset_accounts: bool = False
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[LifespanState]:
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Configure app lifespan."""
     if Config.enable_fastenv:
         settings = await fastenv.load_dotenv(".env")
     else:
         settings = fastenv.DotEnv(**os.environ)
-    lifespan_state: LifespanState = {"settings": settings}
-    yield lifespan_state
+    database_url = settings.get("DATABASE_URL", "")
+    engine: Engine = get_engine(database_url)
+    if Config.create_tables:
+        create_db(engine)
+    if Config.reset_accounts:
+        num_of_fake_accounts: int = int(
+            settings.get("NUMBER_OF_FAKE_ACCOUNTS", 10)
+        )
+        reset_accounts(engine, num_of_fake_accounts)
+    app.state.db_engine = engine
+    app.state.settings = settings
+    yield
+    app.state.db_engine = None
+    app.state.settings = None
+    engine.dispose()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -38,7 +53,7 @@ async def get_settings(request: Request) -> dict[str, str]:
     return dict(settings)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--enable-fastenv",
@@ -50,10 +65,28 @@ def main():
         "--host", type=str, default="127.0.0.1", help="Hostname"
     )
     parser.add_argument("--port", type=int, default=8000, help="Port")
+    parser.add_argument(
+        "--create-tables",
+        action="store_true",
+        default=False,
+        help="Create tables",
+    )
+    parser.add_argument(
+        "--reset-accounts",
+        action="store_true",
+        default=False,
+        help="Reset accounts",
+    )
     args = parser.parse_args()
 
     if args.enable_fastenv:
         Config.enable_fastenv = True
+
+    if args.create_tables:
+        Config.create_tables = True
+
+    if args.reset_accounts:
+        Config.reset_accounts = True
 
     uvicorn.run(app, host=args.host, port=args.port)
 
