@@ -57,6 +57,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[LifespanState]:
 app: FastAPI = FastAPI(lifespan=lifespan)
 
 
+# FIXME: Remove this endpoint
 @app.get("/settings")
 async def get_settings(request: Request) -> dict[str, str]:
     settings = request.state.settings
