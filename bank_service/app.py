@@ -3,7 +3,7 @@ import argparse
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 import os
-from typing import Any, AsyncIterator, Optional, TypedDict
+from typing import AsyncIterator, TypedDict
 
 from fastapi import FastAPI, Request
 import fastenv
