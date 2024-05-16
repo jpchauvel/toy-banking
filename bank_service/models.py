@@ -64,6 +64,7 @@ def reset_accounts(engine: Engine, num_fake_accounts: int) -> None:
         ).all()
         [session.delete(row) for row in bank_account_results]
         [session.delete(row) for row in account_transaction_results]
+        session.commit()
 
     # Generate new bank accounts
     for _ in range(num_fake_accounts):
