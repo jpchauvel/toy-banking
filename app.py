@@ -3,7 +3,7 @@ import argparse
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 import os
-from typing import AsyncIterator, TypedDict
+from typing import Any, AsyncIterator, Optional, TypedDict
 
 from fastapi import FastAPI, Request
 import fastenv
@@ -41,15 +41,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[LifespanState]:
             settings.get("NUMBER_OF_FAKE_ACCOUNTS", 10)
         )
         reset_accounts(engine, num_of_fake_accounts)
-    app.state.db_engine = engine
-    app.state.settings = settings
-    lifespan_state: LifespanState = {
+    lifespan_state: LifespanState | None = {
         "db_engine": engine,
         "settings": settings,
     }
+    for key, value in lifespan_state.items():
+        setattr(app.state, key, value)
     yield lifespan_state
-    app.state.db_engine = None
-    app.state.settings = None
+    for key, value in lifespan_state.items():
+        tmp = getattr(app.state, key)
+        del tmp
     engine.dispose()
 
 
