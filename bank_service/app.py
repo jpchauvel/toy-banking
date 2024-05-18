@@ -23,7 +23,7 @@ class LifespanState(TypedDict):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[LifespanState]:
+async def lifespan(_: FastAPI) -> AsyncIterator[LifespanState]:
     """Configure app lifespan."""
     settings: config.Settings = config.get_settings()
     engine: Engine = get_engine(settings.database_url)
@@ -31,15 +31,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[LifespanState]:
         create_db(engine)
     if Config.reset_accounts:
         reset_accounts(engine, settings.number_of_fake_accounts)
-    lifespan_state: LifespanState | None = {
+    lifespan_state: LifespanState = {
         "db_engine": engine,
     }
-    for key, value in lifespan_state.items():
-        setattr(app.state, key, value)
     yield lifespan_state
-    for key, value in lifespan_state.items():
-        tmp = getattr(app.state, key)
-        del tmp
     engine.dispose()
 
 

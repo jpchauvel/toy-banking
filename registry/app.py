@@ -33,7 +33,7 @@ class LifespanState(TypedDict):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[LifespanState]:
+async def lifespan(_: FastAPI) -> AsyncIterator[LifespanState]:
     """Configure app lifespan."""
     settings: config.Settings = config.get_settings()
     engine: Engine = get_engine(settings.database_url)
@@ -41,15 +41,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[LifespanState]:
         create_db(engine)
     if Config.reset_banks:
         reset_banks(engine)
-    lifespan_state: LifespanState | None = {
+    lifespan_state: LifespanState = {
         "db_engine": engine,
     }
-    for key, value in lifespan_state.items():
-        setattr(app.state, key, value)
     yield lifespan_state
-    for key, value in lifespan_state.items():
-        tmp = getattr(app.state, key)
-        del tmp
     engine.dispose()
 
 
@@ -63,7 +58,6 @@ async def regiter_bank(
     settings: Annotated[config.Settings, Depends(config.get_settings)],
 ) -> Response:
     engine = request.state.db_engine
-    base_url = settings.base_url
     try:
         register_bank(engine, bank)
     except SwiftAlreadyExistException as e:
@@ -73,7 +67,7 @@ async def regiter_bank(
     return Response(
         status_code=status.HTTP_201_CREATED,
         content=None,
-        headers={"Location": f"{base_url}/banks/{bank.swift}"},
+        headers={"Location": f"{settings.base_url}/banks/{bank.swift}"},
     )
 
 
