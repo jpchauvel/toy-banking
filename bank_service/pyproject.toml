@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "toy-banking"
+version = "0.1.0"
+description = "A toy bank service for studying distributed transactions"
+authors = ["Jean-Pierre Chauvel <jean.p.chauvel@gmail.com>, Antonio Ognio <aognio@gmail.com>"]
+license = "CC0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+Faker = "^25.2.0"
+fastenv = "^0.5.0"
+fastapi = "^0.111.0"
+cryptography = "^42.0.7"
+sqlmodel = "^0.0.18"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.4.2"
+
+[tool.black]
+line-length = 79
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
