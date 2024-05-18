@@ -293,10 +293,14 @@ files = [
 email_validator = ">=2.0.0"
 fastapi-cli = ">=0.0.2"
 httpx = ">=0.23.0"
+itsdangerous = {version = ">=1.1.0", optional = true, markers = "extra == \"all\""}
 jinja2 = ">=2.11.2"
 orjson = ">=3.2.1"
 pydantic = ">=1.7.4,<1.8 || >1.8,<1.8.1 || >1.8.1,<2.0.0 || >2.0.0,<2.0.1 || >2.0.1,<2.1.0 || >2.1.0,<3.0.0"
+pydantic-extra-types = {version = ">=2.0.0", optional = true, markers = "extra == \"all\""}
+pydantic-settings = {version = ">=2.0.0", optional = true, markers = "extra == \"all\""}
 python-multipart = ">=0.0.7"
+pyyaml = {version = ">=5.3.1", optional = true, markers = "extra == \"all\""}
 starlette = ">=0.37.2,<0.38.0"
 typing-extensions = ">=4.8.0"
 ujson = ">=4.0.1,<4.0.2 || >4.0.2,<4.1.0 || >4.1.0,<4.2.0 || >4.2.0,<4.3.0 || >4.3.0,<5.0.0 || >5.0.0,<5.1.0 || >5.1.0"
@@ -320,27 +324,6 @@ files = [
 fastapi = "*"
 typer = ">=0.12.3"
 uvicorn = {version = ">=0.15.0", extras = ["standard"]}
-
-[[package]]
-name = "fastenv"
-version = "0.5.0"
-description = "Unified environment variable and settings management for FastAPI and beyond."
-optional = false
-python-versions = "<4,>=3.8.1"
-files = [
-    {file = "fastenv-0.5.0-py3-none-any.whl", hash = "sha256:a5f3b1957c64965e137345ae77c79f92d470f419861899289a10aab4e4f64c2a"},
-    {file = "fastenv-0.5.0.tar.gz", hash = "sha256:24b844afd7a8f0bd0d568856e6c9b3dd7ca18b0bf8d512df8304eb9af0eddb73"},
-]
-
-[package.dependencies]
-anyio = ">=3.3,<5"
-
-[package.extras]
-checks = ["mypy (==1.9.0)", "ruff (>=0.3,<0.4)"]
-cloud = ["httpx (>=0.23,<1)"]
-docs = ["mkdocs-material (>=9,<10)"]
-httpx = ["httpx (>=0.23,<1)"]
-tests = ["coverage[toml] (>=7,<8)", "fastapi (>=0.110.1,<0.111)", "freezegun (>=1,<2)", "httpx (>=0.23,<1)", "pytest (>=8.1.1,<9)", "pytest-mock (>=3,<4)"]
 
 [[package]]
 name = "greenlet"
@@ -526,6 +509,31 @@ python-versions = ">=3.5"
 files = [
     {file = "idna-3.7-py3-none-any.whl", hash = "sha256:82fee1fc78add43492d3a1898bfa6d8a904cc97d8427f683ed8e798d07761aa0"},
     {file = "idna-3.7.tar.gz", hash = "sha256:028ff3aadf0609c1fd278d8ea3089299412a7a8b9bd005dd08b9f8285bcb5cfc"},
+]
+
+[[package]]
+name = "isort"
+version = "5.13.2"
+description = "A Python utility / library to sort Python imports."
+optional = false
+python-versions = ">=3.8.0"
+files = [
+    {file = "isort-5.13.2-py3-none-any.whl", hash = "sha256:8ca5e72a8d85860d5a3fa69b8745237f2939afe12dbf656afbcb47fe72d947a6"},
+    {file = "isort-5.13.2.tar.gz", hash = "sha256:48fdfcb9face5d58a4f6dde2e72a1fb8dcaf8ab26f95ab49fab84c2ddefb0109"},
+]
+
+[package.extras]
+colors = ["colorama (>=0.4.6)"]
+
+[[package]]
+name = "itsdangerous"
+version = "2.2.0"
+description = "Safely pass data to untrusted environments and back."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "itsdangerous-2.2.0-py3-none-any.whl", hash = "sha256:c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef"},
+    {file = "itsdangerous-2.2.0.tar.gz", hash = "sha256:e0050c0b7da1eea53ffaf149c0cfbb5c6e2e2b69c4bef22c81fa6eb73e5f6173"},
 ]
 
 [[package]]
@@ -873,6 +881,42 @@ files = [
 
 [package.dependencies]
 typing-extensions = ">=4.6.0,<4.7.0 || >4.7.0"
+
+[[package]]
+name = "pydantic-extra-types"
+version = "2.7.0"
+description = "Extra Pydantic types."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "pydantic_extra_types-2.7.0-py3-none-any.whl", hash = "sha256:ac01bbdaa4f85e4c4744a9792c5b0cfe61efa5028a0e670c3d8bfbf8b36c8543"},
+    {file = "pydantic_extra_types-2.7.0.tar.gz", hash = "sha256:b9d9ddd755fa5960ec5a77cffcbd5d8796a0116e1dfc8f7c3a27fa0041693382"},
+]
+
+[package.dependencies]
+pydantic = ">=2.5.2"
+
+[package.extras]
+all = ["pendulum (>=3.0.0,<4.0.0)", "phonenumbers (>=8,<9)", "pycountry (>=23)", "python-ulid (>=1,<2)", "python-ulid (>=1,<3)"]
+
+[[package]]
+name = "pydantic-settings"
+version = "2.2.1"
+description = "Settings management using Pydantic"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "pydantic_settings-2.2.1-py3-none-any.whl", hash = "sha256:0235391d26db4d2190cb9b31051c4b46882d28a51533f97440867f012d4da091"},
+    {file = "pydantic_settings-2.2.1.tar.gz", hash = "sha256:00b9f6a5e95553590434c0fa01ead0b216c3e10bc54ae02e37f359948643c5ed"},
+]
+
+[package.dependencies]
+pydantic = ">=2.3.0"
+python-dotenv = ">=0.21.0"
+
+[package.extras]
+toml = ["tomli (>=2.0.1)"]
+yaml = ["pyyaml (>=6.0.1)"]
 
 [[package]]
 name = "pygments"
@@ -1515,4 +1559,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "54df971376ab29088b6b723408df654badede52d8f28ca4c68c9e667d3711ef6"
+content-hash = "f3633b6eec70903b55b2c21c8173e0db6e0ee60cf04314b7ee6da39813fd8147"

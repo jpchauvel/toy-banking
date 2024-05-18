@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-import uuid
 from typing import Any
+import uuid
 
-from pydantic import BaseModel
-from sqlalchemy import Column, Engine, String, JSON
+from pydantic import BaseModel, ConfigDict, computed_field
+from sqlalchemy import Column, Engine, JSON, String
 from sqlmodel import Field, SQLModel, Session, create_engine, select
+
+import config
 
 
 class BankException(Exception):
@@ -19,19 +21,23 @@ class Bank(SQLModel, table=True):
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4, primary_key=True, index=True
     )
-    swift: str = Field(
-        sa_column=Column("swift", String, unique=True)
-    )
+    swift: str = Field(sa_column=Column("swift", String, unique=True))
     name: str
-    bank_metadata: str = Field(
-        sa_column=Column("bank_metadata", JSON)
-    )
+    bank_metadata: str = Field(sa_column=Column("bank_metadata", JSON))
 
 
 class BankDTO(BaseModel):
     swift: str
     name: str
     bank_metadata: dict[str, Any]
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    @property
+    def link(self) -> str:
+        settings: config.Settings = config.get_settings()
+        return f"{settings.base_url}/banks/{self.swift}"
 
 
 def get_engine(database_url: str) -> Engine:
@@ -57,7 +63,23 @@ def register_bank(engine: Engine, dto: BankDTO) -> None:
         bank_statement = select(Bank).where(Bank.swift == dto.swift)
         bank_results = session.exec(bank_statement).all()
         if len(bank_results) > 0:
-            raise SwiftAlreadyExistException(f"Swift code {dto.swift} already exists")
+            raise SwiftAlreadyExistException(
+                f"Swift code {dto.swift} already exists"
+            )
         bank: Bank = Bank(**dto.model_dump())
         session.add(bank)
         session.commit()
+
+
+def retrieve_all_banks(engine: Engine) -> list[Bank]:
+    with Session(engine) as session:
+        bank_statement = select(Bank)
+        bank_results = session.exec(bank_statement).all()
+        return bank_results
+
+
+def retrieve_bank_by_swift(engine: Engine, swift: str) -> Bank | None:
+    with Session(engine) as session:
+        bank_statement = select(Bank).where(Bank.swift == swift)
+        bank_results: Bank | None = session.exec(bank_statement).first()
+        return bank_results
