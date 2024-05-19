@@ -52,6 +52,26 @@ async def lifespan(_: FastAPI) -> AsyncIterator[LifespanState]:
 app: FastAPI = FastAPI(lifespan=lifespan)
 
 
+@app.post("/banks/controllers/sync", status_code=status.HTTP_201_CREATED)
+async def sync_bank_endpoint(
+    request: Request,
+    bank: BankDTO,
+    settings: Annotated[config.Settings, Depends(config.get_settings)],
+) -> Response:
+    engine = request.state.db_engine
+    bank_result = retrieve_bank_by_swift(engine, bank.swift)
+    if bank_result is None:
+        register_bank(engine, bank)
+        return Response(
+            status_code=status.HTTP_201_CREATED,
+            content=None,
+            headers={"Location": f"{settings.base_url}/banks/{bank.swift}"},
+        )
+    else:
+        update_bank(engine, bank)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @app.post("/banks", status_code=status.HTTP_201_CREATED)
 async def regiter_bank_endpoint(
     request: Request,
