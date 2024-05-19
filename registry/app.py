@@ -19,6 +19,7 @@ from models import (
     reset_banks,
     retrieve_all_banks,
     retrieve_bank_by_swift,
+    update_bank,
 )
 
 
@@ -52,7 +53,7 @@ app: FastAPI = FastAPI(lifespan=lifespan)
 
 
 @app.post("/banks", status_code=status.HTTP_201_CREATED)
-async def regiter_bank(
+async def regiter_bank_endpoint(
     request: Request,
     bank: BankDTO,
     settings: Annotated[config.Settings, Depends(config.get_settings)],
@@ -71,15 +72,37 @@ async def regiter_bank(
     )
 
 
+@app.put("/banks/{swift}")
+async def update_bank_endpoint(
+    request: Request,
+    swift: str,
+    bank: BankDTO,
+) -> Response:
+    engine = request.state.db_engine
+    bank_result = retrieve_bank_by_swift(engine, swift)
+    if bank_result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No bank service with swift code {swift} found",
+        )
+    if swift != bank.swift:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Swift in payload does not match resource",
+        )
+    update_bank(engine, bank)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @app.get("/banks")
-async def list_banks(request: Request) -> list[BankDTO]:
+async def list_banks_endpoint(request: Request) -> list[BankDTO]:
     engine = request.state.db_engine
     bank_results = retrieve_all_banks(engine)
     return [BankDTO(**bank.model_dump()) for bank in bank_results]
 
 
 @app.get("/banks/{swift}")
-async def get_bank_by_swift(request: Request, swift: str) -> BankDTO:
+async def get_bank_by_swift_endpoint(request: Request, swift: str) -> BankDTO:
     engine = request.state.db_engine
     bank = retrieve_bank_by_swift(engine, swift)
     if bank is None:

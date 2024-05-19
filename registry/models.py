@@ -71,6 +71,16 @@ def register_bank(engine: Engine, dto: BankDTO) -> None:
         session.commit()
 
 
+def update_bank(engine: Engine, dto: BankDTO) -> None:
+    with Session(engine) as session:
+        bank_statement = select(Bank).where(Bank.swift == dto.swift)
+        bank: Bank = session.exec(bank_statement).one()
+        bank.name = dto.name
+        bank.bank_metadata = dto.bank_metadata
+        session.add(bank)
+        session.commit()
+
+
 def retrieve_all_banks(engine: Engine) -> list[Bank]:
     with Session(engine) as session:
         bank_statement = select(Bank)
