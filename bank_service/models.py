@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
+import uuid
 from datetime import datetime
 from decimal import Decimal
-import uuid
 
 from sqlalchemy import Column, Engine, String
-from sqlmodel import Field, SQLModel, Session, create_engine, select
+from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 from fake import generate_bank_account
 

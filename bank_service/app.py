@@ -4,9 +4,9 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import AsyncIterator, TypedDict
 
+import uvicorn
 from fastapi import FastAPI
 from sqlalchemy import Engine
-import uvicorn
 
 import config
 from models import create_db, get_engine, reset_accounts

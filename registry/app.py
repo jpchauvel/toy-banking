@@ -4,10 +4,10 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Annotated, AsyncIterator, TypedDict
 
+import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import Response
 from sqlalchemy import Engine
-import uvicorn
 
 import config
 from models import (

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-from typing import Any
 import uuid
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, computed_field
-from sqlalchemy import Column, Engine, JSON, String
-from sqlmodel import Field, SQLModel, Session, create_engine, select
+from sqlalchemy import JSON, Column, Engine, String
+from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 import config
 
