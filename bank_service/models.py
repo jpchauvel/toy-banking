@@ -1,12 +1,25 @@
 #!/usr/bin/env python3
-import uuid
 from datetime import datetime
 from decimal import Decimal
+import uuid
 
-from sqlalchemy import Column, Engine, String
-from sqlmodel import Field, Session, SQLModel, create_engine, select
+from sqlalchemy import Column, MetaData, String, ScalarResult
+from sqlalchemy.ext.asyncio.engine import AsyncEngine
+from sqlmodel import Field, SQLModel, select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from fake import generate_bank_account
+
+NAMING_CONVENTION = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s",
+}
+
+metadata: MetaData = SQLModel.metadata
+metadata.naming_convention = NAMING_CONVENTION
 
 
 class BankAccount(SQLModel, table=True):
@@ -19,13 +32,16 @@ class BankAccount(SQLModel, table=True):
     )
     state: str
 
-    def calculate_balance(self, engine: Engine) -> Decimal:
-        with Session(engine) as session:
-            account_transactions = session.exec(
-                select(AccountTransaction).where(
-                    AccountTransaction.account_id == self.id
+    async def calculate_balance(self, engine: AsyncEngine) -> Decimal:
+        async with AsyncSession(engine) as session:
+            account_transactions_exec: ScalarResult[AccountTransaction] = (
+                await session.exec(
+                    select(AccountTransaction).where(
+                        AccountTransaction.account_id == self.id
+                    )
                 )
-            ).all()
+            )
+            account_transactions = account_transactions_exec.all()
             balance = Decimal(0)
             for account_transaction in account_transactions:
                 balance += account_transaction.amount
@@ -42,29 +58,23 @@ class AccountTransaction(SQLModel, table=True):
     timestamp: datetime
 
 
-def get_engine(database_url: str) -> Engine:
-    engine: Engine = create_engine(database_url)
-    SQLModel.metadata.create_all(engine)
-    return engine
-
-
-def create_db(engine: Engine) -> None:
-    SQLModel.metadata.create_all(engine)
-
-
-def reset_accounts(engine: Engine, num_fake_accounts: int) -> None:
+async def reset_accounts(engine: AsyncEngine, num_fake_accounts: int) -> None:
     """Generate bank accounts."""
     # Reset database if flag set
-    with Session(engine) as session:
+    async with AsyncSession(engine) as session:
         bank_account_statement = select(BankAccount)
-        bank_account_results = session.exec(bank_account_statement).all()
+        bank_account_results_exec: ScalarResult[BankAccount] = (
+            await session.exec(bank_account_statement)
+        )
+        bank_account_results = bank_account_results_exec.all()
         account_transaction_statement = select(AccountTransaction)
-        account_transaction_results = session.exec(
-            account_transaction_statement
-        ).all()
+        account_transaction_results_exec: ScalarResult[AccountTransaction] = (
+            await session.exec(account_transaction_statement)
+        )
+        account_transaction_results = account_transaction_results_exec.all()
         [session.delete(row) for row in bank_account_results]
         [session.delete(row) for row in account_transaction_results]
-        session.commit()
+        await session.commit()
 
     # Generate new bank accounts
     for _ in range(num_fake_accounts):
@@ -77,7 +87,7 @@ def reset_accounts(engine: Engine, num_fake_accounts: int) -> None:
             description="Initial deposit",
             timestamp=datetime.now(),
         )
-        with Session(engine) as session:
+        async with AsyncSession(engine) as session:
             session.add(account)
             session.add(account_transaction)
-            session.commit()
+            await session.commit()

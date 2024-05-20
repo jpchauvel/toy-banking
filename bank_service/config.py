@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     number_of_fake_accounts: int = 0
     registry_url: str = ""
     swift: str = ""
-    bank_nake: str = ""
+    bank_name: str = ""
     bank_region: str = ""
     bank_country: str = ""
 

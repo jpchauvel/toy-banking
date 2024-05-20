@@ -1,12 +1,25 @@
 #!/usr/bin/env python3
-import uuid
 from typing import Any
+import uuid
 
 from pydantic import BaseModel, ConfigDict, computed_field
-from sqlalchemy import JSON, Column, Engine, String
-from sqlmodel import Field, Session, SQLModel, create_engine, select
+from sqlalchemy import Column, JSON, MetaData, String, ScalarResult
+from sqlalchemy.ext.asyncio.engine import AsyncEngine
+from sqlmodel import Field, SQLModel, select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 import config
+
+NAMING_CONVENTION = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s",
+}
+
+metadata: MetaData = SQLModel.metadata
+metadata.naming_convention = NAMING_CONVENTION
 
 
 class BankException(Exception):
@@ -40,56 +53,57 @@ class BankDTO(BaseModel):
         return f"{settings.base_url}/banks/{self.swift}"
 
 
-def get_engine(database_url: str) -> Engine:
-    engine: Engine = create_engine(database_url)
-    SQLModel.metadata.create_all(engine)
-    return engine
-
-
-def create_db(engine: Engine) -> None:
-    SQLModel.metadata.create_all(engine)
-
-
-def reset_banks(engine: Engine) -> None:
-    with Session(engine) as session:
+async def reset_banks(engine: AsyncEngine) -> None:
+    async with AsyncSession(engine) as session:
         bank_statement = select(Bank)
-        bank_results = session.exec(bank_statement).all()
+        bank_results_exec: ScalarResult[Bank] = await session.exec(
+            bank_statement
+        )
+        bank_results = bank_results_exec.all()
         [session.delete(row) for row in bank_results]
-        session.commit()
+        await session.commit()
 
 
-def register_bank(engine: Engine, dto: BankDTO) -> None:
-    with Session(engine) as session:
+async def register_bank(engine: AsyncEngine, dto: BankDTO) -> None:
+    async with AsyncSession(engine) as session:
         bank_statement = select(Bank).where(Bank.swift == dto.swift)
-        bank_results = session.exec(bank_statement).all()
+        bank_results = await session.exec(bank_statement)
+        bank_results = bank_results.all()
         if len(bank_results) > 0:
             raise SwiftAlreadyExistException(
                 f"Swift code {dto.swift} already exists"
             )
         bank: Bank = Bank(**dto.model_dump())
         session.add(bank)
-        session.commit()
+        await session.commit()
 
 
-def update_bank(engine: Engine, dto: BankDTO) -> None:
-    with Session(engine) as session:
+async def update_bank(engine: AsyncEngine, dto: BankDTO) -> None:
+    async with AsyncSession(engine) as session:
         bank_statement = select(Bank).where(Bank.swift == dto.swift)
-        bank: Bank = session.exec(bank_statement).one()
+        bank_exec: ScalarResult[Bank] = await session.exec(bank_statement)
+        bank = bank_exec.one()
         bank.name = dto.name
         bank.bank_metadata = dto.bank_metadata
         session.add(bank)
-        session.commit()
+        await session.commit()
 
 
-def retrieve_all_banks(engine: Engine) -> list[Bank]:
-    with Session(engine) as session:
+async def retrieve_all_banks(engine: AsyncEngine) -> list[Bank]:
+    async with AsyncSession(engine) as session:
         bank_statement = select(Bank)
-        bank_results = session.exec(bank_statement).all()
+        bank_results_exec: ScalarResult[Bank] = await session.exec(
+            bank_statement
+        )
+        bank_results = bank_results_exec.all()
         return bank_results
 
 
-def retrieve_bank_by_swift(engine: Engine, swift: str) -> Bank | None:
-    with Session(engine) as session:
+async def retrieve_bank_by_swift(
+    engine: AsyncEngine, swift: str
+) -> Bank | None:
+    async with AsyncSession(engine) as session:
         bank_statement = select(Bank).where(Bank.swift == swift)
-        bank_results: Bank | None = session.exec(bank_statement).first()
-        return bank_results
+        bank_exec: ScalarResult[Bank] = await session.exec(bank_statement)
+        bank: Bank = bank_exec.one()
+        return bank

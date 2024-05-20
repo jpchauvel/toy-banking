@@ -12,6 +12,9 @@ Faker = "^25.2.0"
 fastapi = {extras = ["all"], version = "^0.111.0"}
 cryptography = "^42.0.7"
 sqlmodel = "^0.0.18"
+alembic = "^1.13.1"
+aiosqlite = "^0.20.0"
+greenlet = "^3.0.3"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
