@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 from typing import Any
 import uuid
 
@@ -89,21 +88,23 @@ async def update_bank(engine: AsyncEngine, dto: BankDTO) -> None:
         await session.commit()
 
 
-async def retrieve_all_banks(engine: AsyncEngine) -> list[Bank]:
+async def retrieve_all_banks(engine: AsyncEngine) -> list[BankDTO]:
     async with AsyncSession(engine) as session:
         bank_statement = select(Bank)
         bank_results_exec: ScalarResult[Bank] = await session.exec(
             bank_statement
         )
         bank_results = bank_results_exec.all()
-        return bank_results
+        return [BankDTO(**bank.model_dump()) for bank in bank_results]
 
 
 async def retrieve_bank_by_swift(
     engine: AsyncEngine, swift: str
-) -> Bank | None:
+) -> BankDTO | None:
     async with AsyncSession(engine) as session:
         bank_statement = select(Bank).where(Bank.swift == swift)
         bank_exec: ScalarResult[Bank] = await session.exec(bank_statement)
-        bank: Bank = bank_exec.one()
-        return bank
+        bank: Bank | None = bank_exec.first()
+        if bank is None:
+            return None
+        return BankDTO(**bank.model_dump())

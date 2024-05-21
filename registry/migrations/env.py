@@ -44,7 +44,7 @@ def run_migrations_offline() -> None:
 
     """
     url: str = config.get_main_option(
-        "sqlalchemy.url", os.environ["DATABASE_URL"]
+        "sqlalchemy.url", os.environ["ALEMBIC_DATABASE_URL"]
     )
     context.configure(
         url=url,
@@ -66,7 +66,7 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    config.set_main_option("DATABASE_URL", os.environ["DATABASE_URL"])
+    config.set_main_option("ALEMBIC_DATABASE_URL", os.environ["ALEMBIC_DATABASE_URL"])
     connectable = engine_from_config(
         config.get_section(
             config.config_ini_section,

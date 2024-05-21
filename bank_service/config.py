@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    alembic_database_url: str = ""
     database_url: str = ""
     number_of_fake_accounts: int = 0
     registry_url: str = ""

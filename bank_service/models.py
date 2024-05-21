@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
 from datetime import datetime
 from decimal import Decimal
 import uuid
 
+from pydantic import BaseModel
 from sqlalchemy import Column, MetaData, String, ScalarResult
 from sqlalchemy.ext.asyncio.engine import AsyncEngine
 from sqlmodel import Field, SQLModel, select
@@ -31,6 +31,7 @@ class BankAccount(SQLModel, table=True):
         sa_column=Column("account_number", String, unique=True)
     )
     state: str
+    balance: Decimal
 
     async def calculate_balance(self, engine: AsyncEngine) -> Decimal:
         async with AsyncSession(engine) as session:
@@ -58,9 +59,31 @@ class AccountTransaction(SQLModel, table=True):
     timestamp: datetime
 
 
+class BankAccountDTO(BaseModel):
+    id: uuid.UUID
+    name: str
+    account_number: str
+    state: str
+    balance: float
+
+
+async def retrieve_all_bank_accounts(
+    engine: AsyncEngine,
+) -> list[BankAccountDTO]:
+    async with AsyncSession(engine) as session:
+        bank_account_statement = select(BankAccount)
+        bank_account_results_exec: ScalarResult[BankAccount] = (
+            await session.exec(bank_account_statement)
+        )
+        bank_account_results = bank_account_results_exec.all()
+        return [
+            BankAccountDTO(**account.model_dump())
+            for account in bank_account_results
+        ]
+
+
 async def reset_accounts(engine: AsyncEngine, num_fake_accounts: int) -> None:
     """Generate bank accounts."""
-    # Reset database if flag set
     async with AsyncSession(engine) as session:
         bank_account_statement = select(BankAccount)
         bank_account_results_exec: ScalarResult[BankAccount] = (
@@ -76,10 +99,9 @@ async def reset_accounts(engine: AsyncEngine, num_fake_accounts: int) -> None:
         [session.delete(row) for row in account_transaction_results]
         await session.commit()
 
-    # Generate new bank accounts
     for _ in range(num_fake_accounts):
         account_data: dict[str, str | Decimal] = generate_bank_account()
-        balance: Decimal = account_data.pop("balance")
+        balance: Decimal = account_data["balance"]
         account: BankAccount = BankAccount(**account_data)
         account_transaction: AccountTransaction = AccountTransaction(
             account_id=account.id,

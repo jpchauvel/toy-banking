@@ -2,6 +2,7 @@
 import argparse
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+import random
 from typing import Annotated, AsyncIterator, TypedDict
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
@@ -54,7 +55,7 @@ async def sync_bank_endpoint(
     settings: Annotated[config.Settings, Depends(config.get_settings)],
 ) -> Response:
     engine = request.state.db_engine
-    bank_result = await retrieve_bank_by_swift(engine, bank.swift)
+    bank_result: BankDTO | None = await retrieve_bank_by_swift(engine, bank.swift)
     if bank_result is None:
         await register_bank(engine, bank)
         return Response(
@@ -94,7 +95,7 @@ async def update_bank_endpoint(
     bank: BankDTO,
 ) -> Response:
     engine = request.state.db_engine
-    bank_result = await retrieve_bank_by_swift(engine, swift)
+    bank_result: BankDTO | None = await retrieve_bank_by_swift(engine, swift)
     if bank_result is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -112,20 +113,35 @@ async def update_bank_endpoint(
 @app.get("/banks")
 async def list_banks_endpoint(request: Request) -> list[BankDTO]:
     engine = request.state.db_engine
-    bank_results = await retrieve_all_banks(engine)
-    return [BankDTO(**bank.model_dump()) for bank in bank_results]
+    bank_results: list[BankDTO] = await retrieve_all_banks(engine)
+    return bank_results
 
 
 @app.get("/banks/{swift}")
 async def get_bank_by_swift_endpoint(request: Request, swift: str) -> BankDTO:
     engine = request.state.db_engine
-    bank = await retrieve_bank_by_swift(engine, swift)
+    bank: BankDTO | None = await retrieve_bank_by_swift(engine, swift)
     if bank is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No bank service with swift code {swift} found",
         )
-    return BankDTO(**bank.model_dump())
+    return bank
+
+
+@app.get("/banks/functions/random")
+async def list_random_banks_endpoint(
+    request: Request, n: int = 1
+) -> list[BankDTO]:
+    engine = request.state.db_engine
+    bank_results: list[BankDTO] = await retrieve_all_banks(engine)
+    if len(bank_results) < n:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Not enough bank services found",
+        )
+    random_banks: list[BankDTO] = random.sample(bank_results, n)
+    return random_banks
 
 
 def main() -> None:

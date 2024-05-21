@@ -2,14 +2,15 @@
 import argparse
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+import random
 from typing import AsyncIterator, TypedDict
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException, status
 from sqlalchemy.ext.asyncio.engine import AsyncEngine, create_async_engine
 import uvicorn
 
 import config
-from models import reset_accounts
+from models import BankAccountDTO, reset_accounts, retrieve_all_bank_accounts
 
 
 @dataclass
@@ -36,6 +37,32 @@ async def lifespan(_: FastAPI) -> AsyncIterator[LifespanState]:
 
 
 app: FastAPI = FastAPI(lifespan=lifespan)
+
+
+@app.get("/accounts")
+async def list_accounts_endpoint(request: Request) -> list[BankAccountDTO]:
+    engine = request.state.db_engine
+    account_results: list[BankAccountDTO] = await retrieve_all_bank_accounts(
+        engine
+    )
+    return account_results
+
+
+@app.get("/accounts/functions/random")
+async def list_random_accounts_endpoint(
+    request: Request, n: int = 1
+) -> list[BankAccountDTO]:
+    engine = request.state.db_engine
+    account_results: list[BankAccountDTO] = await retrieve_all_bank_accounts(
+        engine
+    )
+    if len(account_results) < n:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Not enough bank accounts found",
+        )
+    random_accounts: list[BankAccountDTO] = random.sample(account_results, n)
+    return random_accounts
 
 
 def main() -> None:

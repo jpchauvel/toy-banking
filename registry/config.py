@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    alembic_database_url: str = ""
     database_url: str = ""
     base_url: str = ""
 
