@@ -1,10 +1,9 @@
-from logging.config import fileConfig
 import os
+from logging.config import fileConfig
 
 from alembic import context
 from dotenv import load_dotenv
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 
 import models
 
@@ -66,7 +65,9 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    config.set_main_option("ALEMBIC_DATABASE_URL", os.environ["ALEMBIC_DATABASE_URL"])
+    config.set_main_option(
+        "ALEMBIC_DATABASE_URL", os.environ["ALEMBIC_DATABASE_URL"]
+    )
     connectable = engine_from_config(
         config.get_section(
             config.config_ini_section,

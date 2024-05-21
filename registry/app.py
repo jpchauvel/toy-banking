@@ -1,25 +1,19 @@
 #!/usr/bin/env python3
 import argparse
+import random
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-import random
 from typing import Annotated, AsyncIterator, TypedDict
 
+import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio.engine import AsyncEngine, create_async_engine
-import uvicorn
 
 import config
-from models import (
-    BankDTO,
-    SwiftAlreadyExistException,
-    register_bank,
-    reset_banks,
-    retrieve_all_banks,
-    retrieve_bank_by_swift,
-    update_bank,
-)
+from models import (BankDTO, SwiftAlreadyExistException, register_bank,
+                    reset_banks, retrieve_all_banks, retrieve_bank_by_swift,
+                    update_bank)
 
 
 @dataclass
@@ -55,7 +49,9 @@ async def sync_bank_endpoint(
     settings: Annotated[config.Settings, Depends(config.get_settings)],
 ) -> Response:
     engine = request.state.db_engine
-    bank_result: BankDTO | None = await retrieve_bank_by_swift(engine, bank.swift)
+    bank_result: BankDTO | None = await retrieve_bank_by_swift(
+        engine, bank.swift
+    )
     if bank_result is None:
         await register_bank(engine, bank)
         return Response(

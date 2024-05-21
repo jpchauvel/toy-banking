@@ -1,8 +1,8 @@
-from typing import Any
 import uuid
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, computed_field
-from sqlalchemy import Column, JSON, MetaData, String, ScalarResult
+from sqlalchemy import JSON, Column, MetaData, ScalarResult, String
 from sqlalchemy.ext.asyncio.engine import AsyncEngine
 from sqlmodel import Field, SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession

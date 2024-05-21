@@ -1,9 +1,9 @@
+import uuid
 from datetime import datetime
 from decimal import Decimal
-import uuid
 
 from pydantic import BaseModel
-from sqlalchemy import Column, MetaData, String, ScalarResult
+from sqlalchemy import Column, MetaData, ScalarResult, String
 from sqlalchemy.ext.asyncio.engine import AsyncEngine
 from sqlmodel import Field, SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession
