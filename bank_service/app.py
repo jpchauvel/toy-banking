@@ -4,6 +4,7 @@ import asyncio
 import random
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, AsyncIterator, TypedDict
 
 import aiohttp
@@ -12,6 +13,7 @@ from fastapi import FastAPI, HTTPException, Request, status
 from sqlalchemy.ext.asyncio.engine import AsyncEngine, create_async_engine
 
 import config
+from genkeys import generate_and_save_key_pair
 from models import BankAccountDTO, reset_accounts, retrieve_all_bank_accounts
 
 
@@ -69,10 +71,18 @@ async def list_random_accounts_endpoint(
 
 async def process_registration() -> None:
     settings: config.Settings = config.get_settings()
+    private_key_path: Path = Path(settings.private_key_path)
+    public_key_path: Path = Path(settings.public_key_path)
+    private_key_pem, public_key_pem = await generate_and_save_key_pair(
+        private_key_path, public_key_path
+    )
     payload: dict[str, Any] = {
         "swift": settings.swift,
         "name": settings.bank_name,
         "bank_metadata": {
+            "base_url": settings.base_url,
+            "private_key": private_key_pem.decode("utf-8"),
+            "public_key": public_key_pem.decode("utf-8"),
             "region": settings.bank_region,
             "country": settings.bank_country,
             "toy_network_queue_name": settings.toy_network_queue_name,
@@ -119,7 +129,8 @@ def main() -> None:
         Config.reset_accounts = True
 
     if args.register_service:
-        asyncio.run(process_registration())
+        loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
+        loop.run_until_complete(process_registration())
 
     uvicorn.run(app, host=args.host, port=args.port)
 

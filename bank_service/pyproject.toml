@@ -16,6 +16,7 @@ alembic = "^1.13.1"
 aiosqlite = "^0.20.0"
 greenlet = "^3.0.3"
 aiohttp = "^3.9.5"
+aiofiles = "^23.2.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"

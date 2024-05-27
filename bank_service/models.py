@@ -1,11 +1,13 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from enum import StrEnum, auto
+from typing import Any
 
 from pydantic import BaseModel
 from sqlalchemy import Column, MetaData, ScalarResult, String
 from sqlalchemy.ext.asyncio.engine import AsyncEngine
-from sqlmodel import Field, SQLModel, select
+from sqlmodel import JSON, Field, SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from fake import generate_bank_account
@@ -20,6 +22,17 @@ NAMING_CONVENTION = {
 
 metadata: MetaData = SQLModel.metadata
 metadata.naming_convention = NAMING_CONVENTION
+
+
+class BankAccountStateType(StrEnum):
+    ACTIVE = auto()
+    CANCELED = auto()
+
+
+class AccountTransactionStateType(StrEnum):
+    PENDING = auto()
+    COMPLETED = auto()
+    CANCELED = auto()
 
 
 class BankAccount(SQLModel, table=True):
@@ -43,8 +56,13 @@ class BankAccount(SQLModel, table=True):
                 )
             )
             account_transactions = account_transactions_exec.all()
-            balance = Decimal(0)
+            balance: Decimal = Decimal(0)
             for account_transaction in account_transactions:
+                if (
+                    account_transaction.state
+                    == AccountTransactionStateType.CANCELED
+                ):
+                    continue
                 balance += account_transaction.amount
             return balance
 
@@ -55,6 +73,8 @@ class AccountTransaction(SQLModel, table=True):
     )
     account_id: uuid.UUID = Field(foreign_key="bankaccount.id")
     amount: Decimal = Field(default=0, max_digits=9, decimal_places=2)
+    state: str
+    annotations: str = Field(sa_column=Column("annotations", JSON, default=[]))
     description: str
     timestamp: datetime
 
@@ -106,6 +126,8 @@ async def reset_accounts(engine: AsyncEngine, num_fake_accounts: int) -> None:
         account_transaction: AccountTransaction = AccountTransaction(
             account_id=account.id,
             amount=balance,
+            state=AccountTransactionStateType.COMPLETED,
+            annotations=[],
             description="Initial deposit",
             timestamp=datetime.now(),
         )
@@ -113,3 +135,66 @@ async def reset_accounts(engine: AsyncEngine, num_fake_accounts: int) -> None:
             session.add(account)
             session.add(account_transaction)
             await session.commit()
+
+
+async def create_or_update_transaction(
+    engine: AsyncEngine,
+    transaction_id: uuid.UUID,
+    account_number: str,
+    state: AccountTransactionStateType,
+    description: str,
+    annotations: list[dict[str, Any]],
+    amount: Decimal,
+) -> None:
+    async with AsyncSession(engine) as session:
+        bank_account_statement = select(BankAccount)
+        bank_account_statement = bank_account_statement.where(
+            BankAccount.account_number == account_number
+        )
+        bank_account_results_exec: ScalarResult[BankAccount] = (
+            await session.exec(bank_account_statement)
+        )
+        bank_account = bank_account_results_exec.one()
+
+        account_transaction_statement = select(AccountTransaction)
+        account_transaction_statement = account_transaction_statement.where(
+            AccountTransaction.account_id == bank_account.id,
+            AccountTransaction.id == transaction_id,
+        )
+        account_transaction_results_exec: ScalarResult[AccountTransaction] = (
+            await session.exec(account_transaction_statement)
+        )
+        account_transaction = account_transaction_results_exec.first()
+        if account_transaction is not None:
+            account_transaction.amount = amount
+            account_transaction.state = state
+            account_transaction.annotations.extend(annotations)
+            account_transaction.description = description
+            account_transaction.timestamp = datetime.now()
+        else:
+            account_transaction = AccountTransaction(
+                id=transaction_id,
+                account_id=bank_account.id,
+                amount=amount,
+                state=state,
+                annotations=annotations,
+                description=description,
+                timestamp=datetime.now(),
+            )
+        session.add(account_transaction)
+        await session.commit()
+
+
+async def update_balance(engine: AsyncEngine, account_number: str) -> None:
+    async with AsyncSession(engine) as session:
+        bank_account_statement = select(BankAccount)
+        bank_account_statement = bank_account_statement.where(
+            BankAccount.account_number == account_number
+        )
+        bank_account_results_exec: ScalarResult[BankAccount] = (
+            await session.exec(bank_account_statement)
+        )
+        bank_account = bank_account_results_exec.one()
+        bank_account.balance = await bank_account.calculate_balance(engine)
+        session.add(bank_account)
+        await session.commit()

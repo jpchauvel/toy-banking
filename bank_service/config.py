@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     registry_base_url: str = ""
     registration_url: str = ""
     registration_timeout: int = 0
+    base_url: str = ""
     swift: str = ""
     bank_name: str = ""
     bank_region: str = ""
